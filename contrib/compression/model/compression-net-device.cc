@@ -368,7 +368,7 @@ CompressionNetDevice::Receive (Ptr<Packet> packet)
         if (m_enableDecompression)
         {
             // DecompressPacket
-            std::cout<<"Decompressing Packet!!!!!!!!!"<<std::endl;
+            // std::cout<<"Decompressing Packet!!!!!!!!!"<<std::endl;
             NS_LOG_INFO ("Decompressing Packet");
             DecompressPacket(packet);
         }
@@ -548,7 +548,7 @@ CompressionNetDevice::Send (
     if (m_enableCompression)
     {
         // Compress Packet
-        std::cout<<"Compressing Packet!!!!!!!!!"<<std::endl;
+        // std::cout<<"Compressing Packet!!!!!!!!!"<<std::endl;
         NS_LOG_INFO ("Compressing Packet");
         CompressPacket(packet);
     }
@@ -723,7 +723,7 @@ CompressionNetDevice::GetEnableDecompression(void) const
 void
 CompressionNetDevice::CompressPacket (Ptr<Packet> p)
 {
-    std::cout<<"Calling Compress Packet!!!!"<<std::endl;
+    // std::cout<<"Calling Compress Packet!!!!"<<std::endl;
   NS_LOG_FUNCTION_NOARGS ();
   uint32_t srcSize = p->GetSize();
 
@@ -734,8 +734,8 @@ CompressionNetDevice::CompressPacket (Ptr<Packet> p)
                      << "\nChange MAX_PACKET_SIZE in compression-net-device.h");
     }
 
-  NS_LOG_INFO ("Received " << srcSize << " bytes for compression UID: " << p->GetUid());
-  NS_LOG_UNCOND ("Received " << srcSize << " bytes for compression UID: " << p->GetUid());
+  // NS_LOG_INFO ("Received " << srcSize << " bytes for compression UID: " << p->GetUid());
+  // NS_LOG_UNCOND ("Received " << srcSize << " bytes for compression UID: " << p->GetUid());
 
   CompressionHeader compHead;
   compHead.SetSize(srcSize);
@@ -750,16 +750,16 @@ CompressionNetDevice::CompressPacket (Ptr<Packet> p)
   compHead.SetData (destData, destSize);
   p->AddHeader (compHead);
 
-  NS_LOG_INFO("Compressed data to " << destSize << " bytes");
-  NS_LOG_UNCOND("Compressed data to " << destSize << " bytes");
-//std::cout<<"Compressed data to " << destSize << " bytes"<<std::endl;
+  // NS_LOG_INFO("Compressed data to " << destSize << " bytes");
+  // NS_LOG_UNCOND("Compressed data to " << destSize << " bytes");
+  // std::cout<<"Compressed data to " << destSize << " bytes"<<std::endl;
 return;
 }
 
 void
 CompressionNetDevice::DecompressPacket (Ptr<Packet> p)
 {
-    std::cout<<"Calling Decompress Packet!!!!"<<std::endl;
+    // std::cout<<"Calling Decompress Packet!!!!"<<std::endl;
 
     NS_LOG_FUNCTION_NOARGS ();
   uint32_t srcSize = p->GetSize();
@@ -771,8 +771,8 @@ CompressionNetDevice::DecompressPacket (Ptr<Packet> p)
                      << "\nChange MAX_PACKET_SIZE in compression-net-device.h");
     }
 
-  NS_LOG_INFO ("Received " << srcSize << " bytes for decompression UID: " << p->GetUid());
-  NS_LOG_UNCOND ("Received " << srcSize << " bytes for decompression UID: " << p->GetUid());
+  // NS_LOG_INFO ("Received " << srcSize << " bytes for decompression UID: " << p->GetUid());
+  // NS_LOG_UNCOND ("Received " << srcSize << " bytes for decompression UID: " << p->GetUid());
 
   CompressionHeader compHead;
   compHead.SetSize (srcSize);
@@ -787,8 +787,8 @@ CompressionNetDevice::DecompressPacket (Ptr<Packet> p)
   compHead.SetData (destData, destSize);
   p->AddHeader (compHead);
 
-  NS_LOG_INFO ("Decompressed data to " << destSize << " bytes");
-  NS_LOG_UNCOND ("Decompressed data to " << destSize << " bytes");
+  // NS_LOG_INFO ("Decompressed data to " << destSize << " bytes");
+  // NS_LOG_UNCOND ("Decompressed data to " << destSize << " bytes");
 //std::cout<<"CompressionNetDevice::DecompressPacket !!!!!"<<std::endl;
   return;
 }

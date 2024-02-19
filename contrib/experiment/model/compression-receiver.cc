@@ -186,7 +186,7 @@ CompressionReceiver::~CompressionReceiver()
                 SeqTsHeader seqTs;
                 packet->RemoveHeader (seqTs);
                 uint32_t currentSequenceNumber = seqTs.GetSeq ();
-                uint64_t ts = Simulator::Now().GetTimeStep();
+                uint64_t ts = Simulator::Now().GetMicroSeconds();
                 if (InetSocketAddress::IsMatchingType (from))
                 {
                     NS_LOG_INFO ("TraceDelay: RX " << packet->GetSize () <<
@@ -236,9 +236,14 @@ CompressionReceiver::~CompressionReceiver()
         std::ofstream output;
         output.open(m_name.c_str());
 
+        uint64_t min = m_results[0], max = 0;
+
         uint32_t chunkSize = m_numPackets;
         for (uint32_t chunk = 0; chunk < chunkSize; chunk++)
-        {
+        {   
+            if (m_results[chunk] != -1) {
+                max = m_results[chunk];
+            }
             ss << chunk;
             ss << "\t";
             ss << m_results[chunk];
@@ -254,7 +259,8 @@ CompressionReceiver::~CompressionReceiver()
         std::cout<<"Packets Lost:"<<GetLost()<<std::endl;
         std::cout<<"ChunckSize:"<<chunkSize<<std::endl;
         std::cout<<"Recieved:"<<m_received<<std::endl;
-        std::cout<<"Saved results to: "<<m_name<<std::endl;
+        // std::cout<<"Saved results to: "<<m_name<<std::endl;
+        std::cout<<"Duration: " << (max - min) / 1000 << "ms" << std::endl;
         return;
     }
 } // Namespace ns3
