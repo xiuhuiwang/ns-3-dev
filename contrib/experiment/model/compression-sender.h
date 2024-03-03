@@ -5,6 +5,7 @@
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
 #include "ns3/ipv4-address.h"
+#include "ns3/applications-module.h"
 
 #include <string>
 
@@ -38,6 +39,9 @@ public:
   void SetPacketLen (uint32_t size);
   void SetEntropy (uint8_t entropy);
   void SetLogFileName (std::string name);
+  void SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2);
+  int64_t GetV4Ping1Start (void);
+  int64_t GetV4Ping2Start (void);
   // void SetIncludeTs (uint8_t includeTs);
 
 protected:
@@ -92,8 +96,12 @@ private:
   CompressionPacketGenerator m_gen;
 
   uint32_t m_initialPacketTrainLength;
-
-    }; // CompressionSender
+  
+  ApplicationContainer* m_v4ping_1;  // ping application sent at the beginning
+  ApplicationContainer* m_v4ping_2;  // ping application sent at the end
+  int64_t m_v4ping_1_start;
+  int64_t m_v4ping_2_start;
+  }; // CompressionSender
   
   
 } // namespace ns3

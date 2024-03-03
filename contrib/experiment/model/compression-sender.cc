@@ -80,6 +80,8 @@ CompressionSender::CompressionSender ()
 //  m_tcpSocket = 0;
   m_sendEvent = EventId ();
   m_initialPacketTrainLength=0;
+  m_v4ping_1 = 0;
+  m_v4ping_2 = 0;
 }
 
 CompressionSender::~CompressionSender ()
@@ -135,6 +137,14 @@ CompressionSender::SetLogFileName (std::string name)
 {
     NS_LOG_FUNCTION (this);
   m_name = name;
+}
+
+void 
+CompressionSender::SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2)
+{
+    NS_LOG_FUNCTION (this);
+    m_v4ping_1 = v4ping_1;
+    m_v4ping_2 = v4ping_2;
 }
 
 /*
@@ -211,6 +221,13 @@ CompressionSender::StartApplication (void)
         }
     }
 
+    if (m_v4ping_1 != 0)
+    {
+        m_v4ping_1->Start (Now());
+        m_v4ping_1_start = Simulator::Now().GetMilliSeconds();
+        // std::cout<<"In CompressionSender::StartApplication:Starting v4ping at " << Now() << std::endl;
+    }
+
     m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     m_socket->SetAllowBroadcast (true);
     m_sendEvent = Simulator::Schedule (Seconds (0.0), &CompressionSender::Send, this);
@@ -225,6 +242,13 @@ CompressionSender::StopApplication ()
 }
 
 
+int64_t CompressionSender::GetV4Ping1Start() {
+    return m_v4ping_1_start;
+}
+
+int64_t CompressionSender::GetV4Ping2Start() {
+    return m_v4ping_2_start;
+}
 
 void
 CompressionSender::Send (void)
@@ -267,9 +291,9 @@ CompressionSender::Send (void)
         NS_LOG_INFO ("Error while sending " << m_size << " bytes to "
                                             << peerAddressStringStream.str ());
     }
-
+    
     if (m_sent < m_count + m_initialPacketTrainLength)
-    {
+    {   
         m_sendEvent = Simulator::Schedule (m_interval, &CompressionSender::Send, this);
     }
 }

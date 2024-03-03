@@ -16,6 +16,7 @@
 #include "ns3/pcap-file.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/vector.h"
+#include "ns3/ping-helper.h"
 
 #include <cstdint>
 #include <fstream>
@@ -64,9 +65,10 @@ main(int argc, char* argv[])
         std::cout << "Please provide a config file" << std::endl;
         return 0;
     }
-    
-    double_t send_interval = 0.0000001;
+
+    double_t send_interval = 0.0001;  // 100 microseconds
     std::string outerLinkCapacity = "8Mbps";  // default capacity of the outer link (non compression link)
+    bool enableCompression = true;  // default value for compression
 
     // Read the config file
     CompConfig config;
@@ -105,10 +107,10 @@ main(int argc, char* argv[])
     
     // Set p0 to be a compression device
     Ptr<CompressionNetDevice> p0_device = DynamicCast<CompressionNetDevice>(p0p1_device.Get(0));
-    p0_device->SetEnableCompression(true);
+    p0_device->SetEnableCompression(enableCompression);
     // Set p1 to be a compression device
     Ptr<CompressionNetDevice> p1_device = DynamicCast<CompressionNetDevice>(p0p1_device.Get(1));
-    p1_device->SetEnableDecompression(true);
+    p1_device->SetEnableDecompression(enableCompression);
 
     // Create the Internet stacks
     InternetStackHelper stack;
@@ -118,10 +120,25 @@ main(int argc, char* argv[])
     Ipv4AddressHelper address;
     address.SetBase("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer s0p0_interface = address.Assign(s0p0_device);
+    address.SetBase("10.1.2.0", "255.255.255.0");
     Ipv4InterfaceContainer p0p1_interface = address.Assign(p0p1_device);
+    address.SetBase("10.1.3.0", "255.255.255.0");
     Ipv4InterfaceContainer p1r0_interface = address.Assign(p1r0_device);
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+    // Create a v4ping application - send at the beginning
+    PingHelper v4pingHelper(Ipv4Address::ConvertFrom(p1r0_interface.GetAddress(1)), Ipv4Address::ConvertFrom(s0p0_interface.GetAddress(0)));
+    v4pingHelper.SetAttribute("Count", UintegerValue(1));
+    
+    // // install the v4ping application on the sender
+    // ApplicationContainer v4ping_1 = v4pingHelper.Install(nodes.Get(0));
+    // v4ping_1.Stop(Seconds(16.0));
+    
+    // // install the v4ping application on the sender
+    // ApplicationContainer v4ping_2 = v4pingHelper.Install(nodes.Get(0));
+    // v4ping_2.Stop(Seconds(16.0));
+
     // Create a sender application
     CompressionSenderHelper senderHelper(p1r0_interface.GetAddress(1), config.UDP_dest_port);  // set destination address and port
     senderHelper.SetAttribute("MaxPackets", UintegerValue(config.UDP_packet_number));
@@ -130,6 +147,7 @@ main(int argc, char* argv[])
 
     ApplicationContainer senderApp = senderHelper.Install(nodes.Get(0));
     senderHelper.GetSender()->SetEntropy(config.entropy);
+    // senderHelper.GetSender()->SetV4Ping(&v4ping_1, &v4ping_2);
     senderApp.Start(Seconds(1.0));
     senderApp.Stop(Seconds(16.0));
 
@@ -146,11 +164,17 @@ main(int argc, char* argv[])
 
     // Enable pcap
     p2p.EnablePcapAll("compression", true);
-
     compHepler.EnablePcapAll("compressor_node", true);
 
+
     Simulator::Run();
+
     receiverHelper.GetReceiver()->Process();  // Output the results
+    // int64_t v4ping1Start = senderHelper.GetSender()->GetV4Ping1Start();
+    // int64_t v4ping2Start = senderHelper.GetSender()->GetV4Ping2Start();
+    // std::cout << "V4Ping1 start time: " << v4ping1Start << "ms" << std::endl;
+    // std::cout << "V4Ping2 start time: " << v4ping2Start << "ms" << std ::endl;
+
     Simulator::Destroy();
     return 0;
 }
