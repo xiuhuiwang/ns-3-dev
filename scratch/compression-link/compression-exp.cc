@@ -7,16 +7,16 @@
 
 #include "ns3/applications-module.h"
 #include "ns3/compression-module.h"
-#include "ns3/experiment-module.h"
 #include "ns3/core-module.h"
+#include "ns3/experiment-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/log.h"
 #include "ns3/network-module.h"
 #include "ns3/pcap-file-wrapper.h"
 #include "ns3/pcap-file.h"
+#include "ns3/ping-helper.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/vector.h"
-#include "ns3/ping-helper.h"
 
 #include <cstdint>
 #include <fstream>
@@ -33,8 +33,10 @@ struct CompConfig
 {
     int UDP_source_port;
     int UDP_dest_port;
-    int TCP_dest_port_headSyn;  // For standalone application, this is the destination port for the first TCP packet
-    int TCP_dest_port_tailSyn;  // For standalone application, this is the destination port for the second TCP packet
+    int TCP_dest_port_headSyn; // For standalone application, this is the destination port for the
+                               // first TCP packet
+    int TCP_dest_port_tailSyn; // For standalone application, this is the destination port for the
+                               // second TCP packet
     int TCP_dest_port_part1;
     int UDP_payload_size;
     int UDP_packet_number;
@@ -44,19 +46,16 @@ struct CompConfig
     std::string output_file;
 };
 
-
-
 std::string trim(const std::string& str);
 bool readConfigFile(const std::string& filename, CompConfig& config);
 
 int
 main(int argc, char* argv[])
-{   
-    
+{
     CommandLine cmd;
 
     std::string filename;
-    
+
     cmd.AddValue("filename", "Name of the config file", filename);
     cmd.Parse(argc, argv);
 
@@ -66,9 +65,10 @@ main(int argc, char* argv[])
         return 0;
     }
 
-    double_t send_interval = 0.00000001;  
-    std::string outerLinkCapacity = "100Mbps";  // default capacity of the outer link (non compression link)
-    bool enableCompression = true;  // default value for compression
+    double_t send_interval = 0.00000001;
+    std::string outerLinkCapacity =
+        "100Mbps";                 // default capacity of the outer link (non compression link)
+    bool enableCompression = true; // default value for compression
 
     // Read the config file
     CompConfig config;
@@ -85,24 +85,25 @@ main(int argc, char* argv[])
     NodeContainer nodes;
     nodes.Create(4);
 
+    NodeContainer s0p0 = NodeContainer(nodes.Get(0), nodes.Get(1)); // sender to router1
+    NodeContainer p0p1 = NodeContainer(nodes.Get(1), nodes.Get(2)); // router1 to router2
+    NodeContainer p1r0 = NodeContainer(nodes.Get(2), nodes.Get(3)); // router2 to receiver
 
-    NodeContainer s0p0 = NodeContainer(nodes.Get(0),nodes.Get(1));  // sender to router1
-    NodeContainer p0p1 = NodeContainer(nodes.Get(1),nodes.Get(2));  // router1 to router2
-    NodeContainer p1r0 = NodeContainer(nodes.Get(2),nodes.Get(3));  // router2 to receiver
-    
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue(outerLinkCapacity));
     p2p.SetChannelAttribute("Delay", StringValue("2ms"));
     p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("655350000p"));
-    NetDeviceContainer s0p0_device = p2p.Install(s0p0);    // set the link properties of sender to router1
-    NetDeviceContainer p1r0_device = p2p.Install(p1r0);    // set the link properties of router2 to receiver
-    
+    NetDeviceContainer s0p0_device =
+        p2p.Install(s0p0); // set the link properties of sender to router1
+    NetDeviceContainer p1r0_device =
+        p2p.Install(p1r0); // set the link properties of router2 to receiver
 
     CompressionHelper compHepler;
     compHepler.SetDeviceAttribute("DataRate", StringValue(config.compression_link_capacity));
     compHepler.SetChannelAttribute("Delay", StringValue("2ms"));
-    NetDeviceContainer p0p1_device = compHepler.Install(p0p1); // set the link properties of router1 to router2
-    
+    NetDeviceContainer p0p1_device =
+        compHepler.Install(p0p1); // set the link properties of router1 to router2
+
     // Set p0 to be a compression device
     Ptr<CompressionNetDevice> p0_device = DynamicCast<CompressionNetDevice>(p0p1_device.Get(0));
     p0_device->SetEnableCompression(enableCompression);
@@ -127,14 +128,16 @@ main(int argc, char* argv[])
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     // Create a sender application
-    CompressionSenderHelper senderHelper(p1r0_interface.GetAddress(1), config.UDP_dest_port);  // set destination address and port
+    CompressionSenderHelper senderHelper(p1r0_interface.GetAddress(1),
+                                         config.UDP_dest_port); // set destination address and port
     senderHelper.SetAttribute("MaxPackets", UintegerValue(config.UDP_packet_number));
     senderHelper.SetAttribute("Interval", TimeValue(Seconds(send_interval)));
     senderHelper.SetAttribute("PacketSize", UintegerValue(config.UDP_payload_size));
 
     ApplicationContainer senderApp = senderHelper.Install(nodes.Get(0));
     senderHelper.GetSender()->SetEntropy(config.entropy);
-    senderHelper.GetSender()->SetTcpPort(config.TCP_dest_port_headSyn, config.TCP_dest_port_tailSyn);
+    senderHelper.GetSender()->SetTcpPort(config.TCP_dest_port_headSyn,
+                                         config.TCP_dest_port_tailSyn);
     senderApp.Start(Seconds(1.0));
     senderApp.Stop(Seconds(10.0));
 
@@ -143,7 +146,7 @@ main(int argc, char* argv[])
     receiverHelper.SetAttribute("NumPackets", UintegerValue(config.UDP_packet_number));
     receiverHelper.SetAttribute("Interval", TimeValue(Seconds(send_interval)));
     receiverHelper.SetAttribute("PacketSize", UintegerValue(config.UDP_payload_size));
-   
+
     ApplicationContainer receiverApp = receiverHelper.Install(nodes.Get(3));
     receiverHelper.GetReceiver()->SetLogFileName(config.output_file);
     receiverApp.Start(Seconds(1.0));
@@ -153,11 +156,8 @@ main(int argc, char* argv[])
     p2p.EnablePcapAll("compression", true);
     compHepler.EnablePcapAll("compressor_node", true);
 
-
     Simulator::Run();
-
-    receiverHelper.GetReceiver()->Process();  // Output the results
-
+    receiverHelper.GetReceiver()->Process(); // Output the results
     Simulator::Destroy();
     return 0;
 }
@@ -238,7 +238,8 @@ readConfigFile(const std::string& filename, CompConfig& config)
         else if (key == "UDP_packet_TTL")
         {
             config.UDP_packet_TTL = std::stoi(value);
-        } else if (key == "compression_link_capacity")
+        }
+        else if (key == "compression_link_capacity")
         {
             config.compression_link_capacity = value;
         }

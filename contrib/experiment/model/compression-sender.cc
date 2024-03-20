@@ -60,15 +60,11 @@ CompressionSender::GetTypeId (void)
                    UintegerValue (9),
                    MakeUintegerAccessor (&CompressionSender::m_peerPort),
                    MakeUintegerChecker<uint16_t> ())
-  //  .AddAttribute ("RemoteTcpPort", "The destination port of the outbound TCP connections",
-  //                 UintegerValue (10),
-  //                 MakeUintegerAccessor (&CompressionSender::m_peerTcpPort),
-  //                 MakeUintegerChecker<uint16_t> ())
-          .AddAttribute ("InitialPacketTrainLength",
-                         "Number of non-apt priority probe packets initially sent to saturate the queue",
-                         UintegerValue (0),
-                         MakeUintegerAccessor (&CompressionSender::m_initialPacketTrainLength),
-                         MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("InitialPacketTrainLength",
+                    "Number of non-apt priority probe packets initially sent to saturate the queue",
+                    UintegerValue (0),
+                    MakeUintegerAccessor (&CompressionSender::m_initialPacketTrainLength),
+                    MakeUintegerChecker<uint32_t> ())
   ;
   return tid;
 }
@@ -78,11 +74,8 @@ CompressionSender::CompressionSender ()
     NS_LOG_FUNCTION (this);//  m_initialized = 0;
   m_sent = 0;
   m_socket = 0;
-//  m_tcpSocket = 0;
   m_sendEvent = EventId ();
   m_initialPacketTrainLength=0;
-//   m_v4ping_1 = 0;
-//   m_v4ping_2 = 0;
 }
 
 CompressionSender::~CompressionSender ()
@@ -109,7 +102,7 @@ void
 CompressionSender::SetNumPackets (uint32_t count)
 {
     NS_LOG_FUNCTION (this);
-  m_count = count;
+    m_count = count;
 }
 
 void 
@@ -123,37 +116,28 @@ void
 CompressionSender::SetPacketLen (uint32_t size)
 {
     NS_LOG_FUNCTION (this);
-  m_size = size;
+    m_size = size;
 }
 
 void 
 CompressionSender::SetEntropy (uint8_t entropy)
 {
     NS_LOG_FUNCTION (this);
-  m_entropy = entropy;
+    m_entropy = entropy;
 }
 
 void
 CompressionSender::SetLogFileName (std::string name)
 {
     NS_LOG_FUNCTION (this);
-  m_name = name;
+    m_name = name;
 }
-
-// void 
-// CompressionSender::SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2)
-// {
-//     NS_LOG_FUNCTION (this);
-//     m_v4ping_1 = v4ping_1;
-//     m_v4ping_2 = v4ping_2;
-// }
-
 
 void
 CompressionSender::DoDispose (void)
 {
     NS_LOG_FUNCTION (this);
-  Application::DoDispose ();
+    Application::DoDispose ();
 }
 
 void
@@ -256,14 +240,6 @@ CompressionSender::StartApplication (void)
             }
         }
 
-
-    // if (m_v4ping_1 != 0)
-    // {
-    //     m_v4ping_1->Start (Now());
-    //     m_v4ping_1_start = Simulator::Now().GetMilliSeconds();
-    //     // std::cout<<"In CompressionSender::StartApplication:Starting v4ping at " << Now() << std::endl;
-    // }
-
     m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     m_socket->SetAllowBroadcast (true);                 
                                     
@@ -279,15 +255,6 @@ CompressionSender::StopApplication ()
   Simulator::Cancel (m_sendEvent);
 }
 
-
-// int64_t CompressionSender::GetV4Ping1Start() {
-//     return m_v4ping_1_start;
-// }
-
-// int64_t CompressionSender::GetV4Ping2Start() {
-//     return m_v4ping_2_start;
-// }
-
 void
 CompressionSender::Send (void)
 {
@@ -296,7 +263,6 @@ CompressionSender::Send (void)
   NS_ASSERT (m_sendEvent.IsExpired ());
 
   // Generate compressable data
-//  uint32_t size = m_size;
   Ptr<Packet> p;
   p = m_gen.GeneratePacket();
 

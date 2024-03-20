@@ -40,10 +40,6 @@ public:
   void SetPacketLen (uint32_t size);
   void SetEntropy (uint8_t entropy);
   void SetLogFileName (std::string name);
-  // void SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2);
-  // int64_t GetV4Ping1Start (void);
-  // int64_t GetV4Ping2Start (void);
-  // void HandleRstPacket (Ptr<Socket> socket);
   void SendTcpTailPacket (void);
 
 protected:
@@ -79,13 +75,11 @@ private:
   // Entropy of probe packet data
   uint8_t m_entropy;
 
-
   // Pointer to the socket to send probe packets to
   Ptr<Socket> m_socket;
   Ptr<Socket> m_socket_tcp;
 
   Address m_peerAddress;
-
   // Port number for probe packets
   uint16_t m_peerPort;
   
@@ -98,7 +92,6 @@ private:
   // Next scheduled event
   EventId m_sendEvent;
 
-
   // Name of the output file
   std::string m_name;
 
@@ -107,12 +100,7 @@ private:
 
   uint32_t m_initialPacketTrainLength;
   
-  // ApplicationContainer* m_v4ping_1;  // ping application sent at the beginning
-  // ApplicationContainer* m_v4ping_2;  // ping application sent at the end
-  // int64_t m_v4ping_1_start;
-  // int64_t m_v4ping_2_start;
   }; // CompressionSender
-  
   
 } // namespace ns3
 
