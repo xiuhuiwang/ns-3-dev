@@ -256,10 +256,8 @@ CompressionReceiver::~CompressionReceiver()
         delete [] m_results;
 
         NS_LOG_INFO ("Saved results to: " << m_name);
-        std::cout<<"Packets Lost:"<<GetLost()<<std::endl;
-        std::cout<<"ChunckSize:"<<chunkSize<<std::endl;
+        std::cout<<"ChunkSize:"<<chunkSize<<std::endl;
         std::cout<<"Recieved:"<<m_received<<std::endl;
-        // std::cout<<"Saved results to: "<<m_name<<std::endl;
         std::cout<<"Duration: " << (max - min) / 1000 << "ms" << std::endl;
         return;
     }

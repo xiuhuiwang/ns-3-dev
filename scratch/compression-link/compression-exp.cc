@@ -33,8 +33,8 @@ struct CompConfig
 {
     int UDP_source_port;
     int UDP_dest_port;
-    int TCP_dest_port_headSyn_part2;  // For standalone application, this is the destination port for the first TCP packet
-    int TCP_dest_port_tailSyn_part2;  // For standalone application, this is the destination port for the second TCP packet
+    int TCP_dest_port_headSyn;  // For standalone application, this is the destination port for the first TCP packet
+    int TCP_dest_port_tailSyn;  // For standalone application, this is the destination port for the second TCP packet
     int TCP_dest_port_part1;
     int UDP_payload_size;
     int UDP_packet_number;
@@ -66,8 +66,8 @@ main(int argc, char* argv[])
         return 0;
     }
 
-    double_t send_interval = 0.0001;  // 100 microseconds
-    std::string outerLinkCapacity = "8Mbps";  // default capacity of the outer link (non compression link)
+    double_t send_interval = 0.00000001;  
+    std::string outerLinkCapacity = "100Mbps";  // default capacity of the outer link (non compression link)
     bool enableCompression = true;  // default value for compression
 
     // Read the config file
@@ -93,12 +93,10 @@ main(int argc, char* argv[])
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue(outerLinkCapacity));
     p2p.SetChannelAttribute("Delay", StringValue("2ms"));
+    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("655350000p"));
     NetDeviceContainer s0p0_device = p2p.Install(s0p0);    // set the link properties of sender to router1
     NetDeviceContainer p1r0_device = p2p.Install(p1r0);    // set the link properties of router2 to receiver
     
-    // p2p.SetDeviceAttribute("DataRate", StringValue(config.compression_link_capacity));
-    // p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
-    // NetDeviceContainer p0p1_device = p2p.Install(p0p1);    // set the link properties of router1 to router2
 
     CompressionHelper compHepler;
     compHepler.SetDeviceAttribute("DataRate", StringValue(config.compression_link_capacity));
@@ -108,6 +106,7 @@ main(int argc, char* argv[])
     // Set p0 to be a compression device
     Ptr<CompressionNetDevice> p0_device = DynamicCast<CompressionNetDevice>(p0p1_device.Get(0));
     p0_device->SetEnableCompression(enableCompression);
+    p0_device->GetQueue()->SetAttribute("MaxSize", StringValue("655350000p"));
     // Set p1 to be a compression device
     Ptr<CompressionNetDevice> p1_device = DynamicCast<CompressionNetDevice>(p0p1_device.Get(1));
     p1_device->SetEnableDecompression(enableCompression);
@@ -127,18 +126,6 @@ main(int argc, char* argv[])
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    // Create a v4ping application - send at the beginning
-    PingHelper v4pingHelper(Ipv4Address::ConvertFrom(p1r0_interface.GetAddress(1)), Ipv4Address::ConvertFrom(s0p0_interface.GetAddress(0)));
-    v4pingHelper.SetAttribute("Count", UintegerValue(1));
-    
-    // // install the v4ping application on the sender
-    // ApplicationContainer v4ping_1 = v4pingHelper.Install(nodes.Get(0));
-    // v4ping_1.Stop(Seconds(16.0));
-    
-    // // install the v4ping application on the sender
-    // ApplicationContainer v4ping_2 = v4pingHelper.Install(nodes.Get(0));
-    // v4ping_2.Stop(Seconds(16.0));
-
     // Create a sender application
     CompressionSenderHelper senderHelper(p1r0_interface.GetAddress(1), config.UDP_dest_port);  // set destination address and port
     senderHelper.SetAttribute("MaxPackets", UintegerValue(config.UDP_packet_number));
@@ -147,9 +134,9 @@ main(int argc, char* argv[])
 
     ApplicationContainer senderApp = senderHelper.Install(nodes.Get(0));
     senderHelper.GetSender()->SetEntropy(config.entropy);
-    // senderHelper.GetSender()->SetV4Ping(&v4ping_1, &v4ping_2);
+    senderHelper.GetSender()->SetTcpPort(config.TCP_dest_port_headSyn, config.TCP_dest_port_tailSyn);
     senderApp.Start(Seconds(1.0));
-    senderApp.Stop(Seconds(16.0));
+    senderApp.Stop(Seconds(10.0));
 
     // Create a receiver application
     CompressionReceiverHelper receiverHelper(config.UDP_dest_port);
@@ -160,7 +147,7 @@ main(int argc, char* argv[])
     ApplicationContainer receiverApp = receiverHelper.Install(nodes.Get(3));
     receiverHelper.GetReceiver()->SetLogFileName(config.output_file);
     receiverApp.Start(Seconds(1.0));
-    receiverApp.Stop(Seconds(20.0));
+    receiverApp.Stop(Seconds(10.0));
 
     // Enable pcap
     p2p.EnablePcapAll("compression", true);
@@ -170,10 +157,6 @@ main(int argc, char* argv[])
     Simulator::Run();
 
     receiverHelper.GetReceiver()->Process();  // Output the results
-    // int64_t v4ping1Start = senderHelper.GetSender()->GetV4Ping1Start();
-    // int64_t v4ping2Start = senderHelper.GetSender()->GetV4Ping2Start();
-    // std::cout << "V4Ping1 start time: " << v4ping1Start << "ms" << std::endl;
-    // std::cout << "V4Ping2 start time: " << v4ping2Start << "ms" << std ::endl;
 
     Simulator::Destroy();
     return 0;
@@ -232,13 +215,13 @@ readConfigFile(const std::string& filename, CompConfig& config)
         {
             config.UDP_dest_port = std::stoi(value);
         }
-        else if (key == "TCP_dest_port_headSyn_part2")
+        else if (key == "TCP_dest_port_headSyn")
         {
-            config.TCP_dest_port_headSyn_part2 = std::stoi(value);
+            config.TCP_dest_port_headSyn = std::stoi(value);
         }
-        else if (key == "TCP_dest_port_tailSyn_part2")
+        else if (key == "TCP_dest_port_tailSyn")
         {
-            config.TCP_dest_port_tailSyn_part2 = std::stoi(value);
+            config.TCP_dest_port_tailSyn = std::stoi(value);
         }
         else if (key == "TCP_dest_port_part1")
         {

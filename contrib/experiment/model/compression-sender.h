@@ -32,6 +32,7 @@ public:
    */
   void SetRemote (Address ip, uint16_t port);
   void SetRemote (Address addr);
+  void SetTcpPort (uint16_t port_head, uint16_t port_tail);
 
   // Set the number of packets, inter packet departure spacing, packet length, entropy, and filename
   void SetNumPackets (uint32_t count);
@@ -39,10 +40,11 @@ public:
   void SetPacketLen (uint32_t size);
   void SetEntropy (uint8_t entropy);
   void SetLogFileName (std::string name);
-  void SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2);
-  int64_t GetV4Ping1Start (void);
-  int64_t GetV4Ping2Start (void);
-  // void SetIncludeTs (uint8_t includeTs);
+  // void SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2);
+  // int64_t GetV4Ping1Start (void);
+  // int64_t GetV4Ping2Start (void);
+  // void HandleRstPacket (Ptr<Socket> socket);
+  void SendTcpTailPacket (void);
 
 protected:
   virtual void DoDispose (void);
@@ -60,7 +62,8 @@ private:
 
   void Send (void);  
 
-  
+  // // Record the time when a RST packet is received
+  // void HandleRstPacket (Ptr<Socket> socket);
   // Maximum number of probe packets in the train
   uint32_t m_count;
 
@@ -79,11 +82,18 @@ private:
 
   // Pointer to the socket to send probe packets to
   Ptr<Socket> m_socket;
+  Ptr<Socket> m_socket_tcp;
 
   Address m_peerAddress;
 
   // Port number for probe packets
   uint16_t m_peerPort;
+  
+  // Port number for tcp head and tail packets
+  uint16_t m_tcpPort_head;
+  uint16_t m_tcpPort_tail;
+  Time m_tcp_head_rstReceivedTime;   // Time when the head packet's RST is received
+  Time m_tcp_tail_rstReceivedTime;   // Time when the tail packet's RST is received
 
   // Next scheduled event
   EventId m_sendEvent;
@@ -97,10 +107,10 @@ private:
 
   uint32_t m_initialPacketTrainLength;
   
-  ApplicationContainer* m_v4ping_1;  // ping application sent at the beginning
-  ApplicationContainer* m_v4ping_2;  // ping application sent at the end
-  int64_t m_v4ping_1_start;
-  int64_t m_v4ping_2_start;
+  // ApplicationContainer* m_v4ping_1;  // ping application sent at the beginning
+  // ApplicationContainer* m_v4ping_2;  // ping application sent at the end
+  // int64_t m_v4ping_1_start;
+  // int64_t m_v4ping_2_start;
   }; // CompressionSender
   
   

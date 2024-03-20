@@ -23,6 +23,7 @@
 #include "compression-app-layer.h"
 #include "compression-packet-gen.h"
 #include "compression-sender.h"
+#include "custom-tcp-socket-base.h"
 
 namespace ns3 {
 
@@ -80,8 +81,8 @@ CompressionSender::CompressionSender ()
 //  m_tcpSocket = 0;
   m_sendEvent = EventId ();
   m_initialPacketTrainLength=0;
-  m_v4ping_1 = 0;
-  m_v4ping_2 = 0;
+//   m_v4ping_1 = 0;
+//   m_v4ping_2 = 0;
 }
 
 CompressionSender::~CompressionSender ()
@@ -139,22 +140,14 @@ CompressionSender::SetLogFileName (std::string name)
   m_name = name;
 }
 
-void 
-CompressionSender::SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2)
-{
-    NS_LOG_FUNCTION (this);
-    m_v4ping_1 = v4ping_1;
-    m_v4ping_2 = v4ping_2;
-}
+// void 
+// CompressionSender::SetV4Ping (ApplicationContainer* v4ping_1, ApplicationContainer* v4ping_2)
+// {
+//     NS_LOG_FUNCTION (this);
+//     m_v4ping_1 = v4ping_1;
+//     m_v4ping_2 = v4ping_2;
+// }
 
-/*
-void
-CompressionSender::SetIncludeTs (uint8_t includeTs)
-{
-  NS_LOG_FUNCTION_NOARGS ();
-  m_includeTs = includeTs;
-}
-*/
 
 void
 CompressionSender::DoDispose (void)
@@ -221,18 +214,63 @@ CompressionSender::StartApplication (void)
         }
     }
 
-    if (m_v4ping_1 != 0)
-    {
-        m_v4ping_1->Start (Now());
-        m_v4ping_1_start = Simulator::Now().GetMilliSeconds();
-        // std::cout<<"In CompressionSender::StartApplication:Starting v4ping at " << Now() << std::endl;
-    }
+    if (m_socket_tcp == 0)
+        {
+            TypeId tid = TypeId::LookupByName ("ns3::TcpSocketFactory");
+            m_socket_tcp = Socket::CreateSocket (GetNode (), tid);
+            if (Ipv4Address::IsMatchingType(m_peerAddress) == true)
+            {
+                if (m_socket_tcp->Bind () == -1)
+                {
+                    NS_FATAL_ERROR ("Failed to bind socket");
+                }
+                m_socket_tcp->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(m_peerAddress), m_tcpPort_head));
+            }
+            else if (Ipv6Address::IsMatchingType(m_peerAddress) == true)
+            {
+                if (m_socket_tcp->Bind6 () == -1)
+                {
+                    NS_FATAL_ERROR ("Failed to bind socket");
+                }
+                m_socket_tcp->Connect (Inet6SocketAddress (Ipv6Address::ConvertFrom(m_peerAddress), m_tcpPort_head));
+            }
+            else if (InetSocketAddress::IsMatchingType (m_peerAddress) == true)
+            {
+                if (m_socket_tcp->Bind () == -1)
+                {
+                    NS_FATAL_ERROR ("Failed to bind socket");
+                }
+                m_socket_tcp->Connect (m_peerAddress);
+            }
+            else if (Inet6SocketAddress::IsMatchingType (m_peerAddress) == true)
+            {
+                if (m_socket_tcp->Bind6 () == -1)
+                {
+                    NS_FATAL_ERROR ("Failed to bind socket");
+                }
+                m_socket_tcp->Connect (m_peerAddress);
+            }
+            else
+            {
+                NS_ASSERT_MSG (false, "Incompatible address type: " << m_peerAddress);
+            }
+        }
+
+
+    // if (m_v4ping_1 != 0)
+    // {
+    //     m_v4ping_1->Start (Now());
+    //     m_v4ping_1_start = Simulator::Now().GetMilliSeconds();
+    //     // std::cout<<"In CompressionSender::StartApplication:Starting v4ping at " << Now() << std::endl;
+    // }
 
     m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
-    m_socket->SetAllowBroadcast (true);
+    m_socket->SetAllowBroadcast (true);                 
+                                    
     m_sendEvent = Simulator::Schedule (Seconds (0.0), &CompressionSender::Send, this);
-
+    Simulator::Schedule (Seconds(2.8), &Socket::Close, m_socket_tcp);
 }
+
 
 void
 CompressionSender::StopApplication ()
@@ -242,13 +280,13 @@ CompressionSender::StopApplication ()
 }
 
 
-int64_t CompressionSender::GetV4Ping1Start() {
-    return m_v4ping_1_start;
-}
+// int64_t CompressionSender::GetV4Ping1Start() {
+//     return m_v4ping_1_start;
+// }
 
-int64_t CompressionSender::GetV4Ping2Start() {
-    return m_v4ping_2_start;
-}
+// int64_t CompressionSender::GetV4Ping2Start() {
+//     return m_v4ping_2_start;
+// }
 
 void
 CompressionSender::Send (void)
@@ -295,7 +333,20 @@ CompressionSender::Send (void)
     if (m_sent < m_count + m_initialPacketTrainLength)
     {   
         m_sendEvent = Simulator::Schedule (m_interval, &CompressionSender::Send, this);
+    }else {
+        Simulator::Schedule (m_interval, &CompressionSender::SendTcpTailPacket, this);
     }
 }
+
+void CompressionSender::SetTcpPort (uint16_t port_head, uint16_t port_tail){
+    m_tcpPort_head = port_head;
+    m_tcpPort_tail = port_tail;
+}
+
+void
+CompressionSender::SendTcpTailPacket (){
+    m_socket_tcp->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(m_peerAddress), m_tcpPort_tail));
+}
+
 
 } // Namespace ns3
